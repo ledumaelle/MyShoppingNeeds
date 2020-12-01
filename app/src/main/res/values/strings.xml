@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">MyShoppingNeeds</string>
+    <string name="pain_au_chocolat">Pain au chocolat</string>
+    <string name="un_euro">1.0 €</string>
+    <string name="description_pain_au_chocolat">Une viennoiserie au beurre et au chocolat</string>
+    <string name="buy">Acheté</string>
+    <string name="tobuy">À acheter</string>
+    <string name="title_list_articles">"Liste des articles : "</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="article_info_url">Article ~ info URL</string>
+    <string name="details_de_l_article">Détails de l\'article</string>
+    <string name="tri_par_prix">Tri par prix</string>
+    <string name="prix_par_defaut">Prix par défaut</string>
+    <string name="configuration">Configuration :</string>
+    <string name="apply">Apply</string>
+    <string name="ajouter_un_article">Ajouter un article</string>
+    <string name="name">Name</string>
+    <string name="price">Price</string>
+    <string name="description">Description</string>
+    <string name="url">URL</string>
+    <string name="add">Add</string>
+    <string name="back">Back</string>
+    <string name="modifier_un_article">Modifier un article</string>
+    <string name="edit">Edit</string>
+    <string name="devise_euro">€</string>
+    <string name="send_an_article_to_our_friend">Send an article to our friend</string>
+</resources>
