@@ -1,24 +1,26 @@
 package com.example.ledumaelle.myshoppingneeds;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.RatingBar;
-import android.widget.TextView;
-import android.widget.ToggleButton;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.ledumaelle.myshoppingneeds.bo.Article;
+import com.example.ledumaelle.myshoppingneeds.dal.AppDatabase;
 import com.example.ledumaelle.myshoppingneeds.dal.ArticleDao;
+import com.example.ledumaelle.myshoppingneeds.dal.Connection;
 
 import java.util.List;
 
 public class EditArticleActivity extends AppCompatActivity {
 
     private Article article;
-    private ArticleDao articleDao;
+    private List<Article> listArticles;
 
     private EditText txtEditArticleName;
     private EditText txtEditArticlePrice;
@@ -26,8 +28,10 @@ public class EditArticleActivity extends AppCompatActivity {
     private EditText txtEditArticleDescription;
     private EditText txtEditArticleUrl;
 
-    private Intent intent;
+    GetListe getArticles = null;
+    GetArticle getArticle = null;
 
+    private Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +39,6 @@ public class EditArticleActivity extends AppCompatActivity {
         setContentView(R.layout.activity_edit_article);
 
         intent = getIntent();
-        articleDao = new ArticleDao(this);
     }
 
     @Override
@@ -53,69 +56,153 @@ public class EditArticleActivity extends AppCompatActivity {
 
         super.onResume();
 
-        Article articleReload = articleDao.get(article.getId());
+        GetArticle getArticle = new GetArticle();
+        getArticle.execute();
 
-        txtEditArticleName = (EditText) findViewById(R.id.txtEditArticleName);
-        txtEditArticleName.setText(articleReload.getName().trim());
+        GetListe getArticles = new GetListe();
+        getArticles.execute();
 
-        txtEditArticlePrice = (EditText) findViewById(R.id.txtEditArticlePrice);
-        txtEditArticlePrice.setText(String.valueOf(articleReload.getPrice()));
-
-        txtEditArticleDescription = (EditText) findViewById(R.id.txtEditArticleDescription);
-        txtEditArticleDescription.setText(String.valueOf(articleReload.getDescription().trim()));
-
-        ratingEditArticle = (RatingBar) findViewById(R.id.ratingEditArticle);
-        ratingEditArticle.setRating(articleReload.getRate());
-
-        txtEditArticleUrl = (EditText) findViewById(R.id.txtEditArticleUrl);
-        txtEditArticleUrl.setText(String.valueOf(articleReload.getUrl().trim()));
     }
 
+    private class GetArticle extends AsyncTask<Void, Void, Article> {
+
+        @Override
+        protected Article doInBackground(Void... voids) {
+            try {
+
+                //instance de la BdD
+                AppDatabase db = Connection.getConnexion(EditArticleActivity.this);
+
+                ArticleDao dao = db.articleDao();
+
+                return dao.findById(article.getId());
+            } catch (Exception ex) {
+
+                Log.e("GetArticle","ERREUR tâche asynchrone GetArticle de EditArticleActivity : " + ex.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Article article) {
+
+            if (article != null) {
+
+                txtEditArticleName = findViewById(R.id.txtEditArticleName);
+                txtEditArticleName.setText(article.getName().trim());
+
+                txtEditArticlePrice = findViewById(R.id.txtEditArticlePrice);
+                txtEditArticlePrice.setText(String.valueOf(article.getPrice()));
+
+                txtEditArticleDescription = findViewById(R.id.txtEditArticleDescription);
+                txtEditArticleDescription.setText(String.valueOf(article.getDescription().trim()));
+
+                ratingEditArticle = findViewById(R.id.ratingEditArticle);
+                ratingEditArticle.setRating(article.getRate());
+
+                txtEditArticleUrl = findViewById(R.id.txtEditArticleUrl);
+                txtEditArticleUrl.setText(String.valueOf(article.getUrl().trim()));
+            }
+        }
+    }
 
     public void back(View view) {
 
-        onBackPressed();
+        finish();
     }
 
     public void editArticle(View view) {
 
-        txtEditArticleName = (EditText) findViewById(R.id.txtEditArticleName);
+        txtEditArticleName = findViewById(R.id.txtEditArticleName);
         article.setName(txtEditArticleName.getText().toString().trim());
 
-        txtEditArticlePrice = (EditText) findViewById(R.id.txtEditArticlePrice);
+        txtEditArticlePrice = findViewById(R.id.txtEditArticlePrice);
         article.setPrice(Float.parseFloat(txtEditArticlePrice.getText().toString()));
 
-        ratingEditArticle = (RatingBar) findViewById(R.id.ratingEditArticle);
+        ratingEditArticle = findViewById(R.id.ratingEditArticle);
         article.setRate(ratingEditArticle.getRating());
 
-        txtEditArticleDescription = (EditText) findViewById(R.id.txtEditArticleDescription);
+        txtEditArticleDescription = findViewById(R.id.txtEditArticleDescription);
         article.setDescription(txtEditArticleDescription.getText().toString().trim());
 
-        txtEditArticleUrl = (EditText) findViewById(R.id.txtEditArticleUrl);
+        txtEditArticleUrl = findViewById(R.id.txtEditArticleUrl);
         article.setUrl(txtEditArticleUrl.getText().toString().trim());
 
         article.setState(false);
 
-        List<Article> listArticles = articleDao.get();
         if (listArticles.contains(article)) {
 
-            if(articleDao.update(article)) {
-
-                intent.putExtra("result","Article mis à jour avec succès !");
-                this.setResult(RESULT_OK,intent);
-
-            } else {
-
-                intent.putExtra("result","Échec de la mise à jour de l'article :( " + article.getName().trim() );
-                this.setResult(RESULT_CANCELED,intent);
-            }
+            Update updateArticle = new Update();
+            updateArticle.execute();
 
         } else {
 
-            intent.putExtra("result","ERREUR : l'article n'existe pas dans la liste des articles");
-            this.setResult(RESULT_CANCELED,intent);
+            intent.putExtra("result", "ERREUR : l'article n'existe pas dans la liste des articles");
+            this.setResult(RESULT_CANCELED, intent);
+
+            finish();
+        }
+    }
+
+    private class GetListe extends AsyncTask<Void, Void, List<Article>> {
+
+        @Override
+        protected List<Article> doInBackground(Void... voids) {
+            try {
+
+                //instance de la BdD
+                AppDatabase db = Connection.getConnexion(EditArticleActivity.this);
+
+                ArticleDao dao = db.articleDao();
+
+                return dao.getAll();
+            } catch (Exception ex) {
+
+                Log.e("GETListe","ERREUR tâche asynchrone GetListe de EditArticleActivity : " + ex.getMessage());
+                return null;
+            }
         }
 
-        finish();
+        @Override
+        protected void onPostExecute(List<Article> articles) {
+            listArticles = articles;
+        }
+    }
+
+    private class Update extends AsyncTask<Void, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+            try {
+
+                //instance de la BdD
+                AppDatabase db = Connection.getConnexion(EditArticleActivity.this);
+
+                ArticleDao dao = db.articleDao();
+                dao.update(article);
+
+                return true;
+            } catch (Exception ex) {
+
+                Log.e("Update","ERREUR tâche asynchrone Update de EditArticleActivity : " + ex.getMessage());
+                return false;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aboolean) {
+
+            if (aboolean) {
+
+                intent.putExtra("result", "Article mis à jour avec succès !");
+                EditArticleActivity.this.setResult(RESULT_OK, intent);
+            } else {
+
+                intent.putExtra("result", "ERREUR : l'article n'a pas pu être mis à jour :(");
+                EditArticleActivity.this.setResult(RESULT_CANCELED, intent);
+            }
+
+            finish();
+        }
     }
 }

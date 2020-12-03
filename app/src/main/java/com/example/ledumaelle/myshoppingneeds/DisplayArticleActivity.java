@@ -4,7 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -14,12 +16,13 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.example.ledumaelle.myshoppingneeds.bo.Article;
+import com.example.ledumaelle.myshoppingneeds.dal.AppDatabase;
 import com.example.ledumaelle.myshoppingneeds.dal.ArticleDao;
+import com.example.ledumaelle.myshoppingneeds.dal.Connection;
 
 public class DisplayArticleActivity extends AppCompatActivity {
 
     private Article article;
-    private ArticleDao articleDao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,10 +37,8 @@ public class DisplayArticleActivity extends AppCompatActivity {
         Intent intent = getIntent();
         article = intent.getParcelableExtra("article");
 
-        Toolbar displayArticleToolbar = (Toolbar) findViewById(R.id.myDisplayArticleToolBar);
+        Toolbar displayArticleToolbar =  findViewById(R.id.myDisplayArticleToolBar);
         setSupportActionBar(displayArticleToolbar);
-
-        articleDao = new ArticleDao(this);
     }
 
     /**
@@ -48,27 +49,53 @@ public class DisplayArticleActivity extends AppCompatActivity {
 
         super.onResume();
 
-        Article articleReload = articleDao.get(article.getId());
+        ChargementArticleTask getArticle = new ChargementArticleTask();
+        getArticle.execute();
+    }
 
-        if(articleReload != null) {
+    private class ChargementArticleTask extends AsyncTask<Void, Void, Void> {
 
-            TextView title = (TextView)findViewById(R.id.txtTitle);
-            title.setText(articleReload.getName());
+        @Override
+        protected Void doInBackground(Void... voids) {
+            try {
 
-            TextView price = (TextView)findViewById(R.id.txtPrice);
-            String tmp = articleReload.getPrice() + " €";
-            price.setText(tmp);
+                //instance de la BdD
+                AppDatabase db = Connection.getConnexion(DisplayArticleActivity.this);
 
-            TextView description = (TextView)findViewById(R.id.txtDescription);
-            description.setText(String.valueOf(articleReload.getDescription()));
+                ArticleDao dao = db.articleDao();
 
-            RatingBar rate = (RatingBar)findViewById(R.id.rating);
-            rate.setRating(articleReload.getRate());
+                article = dao.findById(article.getId());
+            }
+            catch(Exception ex) {
 
-            ToggleButton state = (ToggleButton)findViewById(R.id.btnState);
-            state.setChecked(articleReload.isState());
+                Log.e("ChargementArticleTask","ERREUR tâche asynchrone ChargementArticleTask de DisplayArticleActivity : " + ex.getMessage());
+            }
+
+            return null;
         }
 
+        @Override
+        protected void onPostExecute(Void aVoid) {
+
+            if(article != null) {
+
+                TextView title = findViewById(R.id.txtTitle);
+                title.setText(article.getName());
+
+                TextView price = findViewById(R.id.txtPrice);
+                String tmp = article.getPrice() + " €";
+                price.setText(tmp);
+
+                TextView description = findViewById(R.id.txtDescription);
+                description.setText(String.valueOf(article.getDescription()));
+
+                RatingBar rate = findViewById(R.id.rating);
+                rate.setRating(article.getRate());
+
+                ToggleButton state = findViewById(R.id.btnState);
+                state.setChecked(article.isState());
+            }
+        }
     }
 
     /**
@@ -77,15 +104,15 @@ public class DisplayArticleActivity extends AppCompatActivity {
      */
     public void displayUrl(View view) {
 
-        if(article != null) {
-            Toast.makeText(this, article.getUrl(), Toast.LENGTH_LONG).show();
+        if(article != null && !article.getUrl().isEmpty()) {
 
             Intent intent = new Intent(this, InfoUrlActivity.class);
             intent.putExtra("article", article);
             startActivity(intent);
         }
         else {
-            Toast.makeText(this, "Impossible d'afficher l'URL de l'article", Toast.LENGTH_LONG).show();
+
+            Toast.makeText(this, "Impossible d'afficher l'URL de l'article, veuillez vérifer l'URL enregistré.", Toast.LENGTH_LONG).show();
         }
     }
 

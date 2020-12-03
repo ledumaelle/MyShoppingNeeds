@@ -4,24 +4,25 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RatingBar;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.ToggleButton;
 
 import com.example.ledumaelle.myshoppingneeds.bo.Article;
+import com.example.ledumaelle.myshoppingneeds.dal.AppDatabase;
 import com.example.ledumaelle.myshoppingneeds.dal.ArticleDao;
+import com.example.ledumaelle.myshoppingneeds.dal.Connection;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class AddArticleActivity extends AppCompatActivity {
 
     private Article article;
-    private ArticleDao articleDao;
+    private List<Article> listArticles;
 
     private EditText txtAddArticleName;
     private EditText txtAddArticlePrice;
@@ -30,6 +31,7 @@ public class AddArticleActivity extends AppCompatActivity {
     private EditText txtAddArticleUrl;
 
     private Intent intent;
+    GetListe getArticles = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,19 +41,22 @@ public class AddArticleActivity extends AppCompatActivity {
         intent = getIntent();
 
         article = new Article();
-        articleDao = new ArticleDao(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
+        listArticles = new ArrayList<>();
 
-        txtAddArticleName = (EditText) findViewById(R.id.txtAddArticleName);
-        txtAddArticlePrice = (EditText) findViewById(R.id.txtAddArticlePrice);
-        ratingAddArticle = (RatingBar) findViewById(R.id.ratingAddArticle);
-        txtAddArticleDescription = (EditText) findViewById(R.id.txtAddArticleDescription);
-        txtAddArticleUrl = (EditText) findViewById(R.id.txtAddArticleUrl);
+        getArticles = new GetListe();
+        getArticles.execute();
+
+        txtAddArticleName = findViewById(R.id.txtAddArticleName);
+        txtAddArticlePrice = findViewById(R.id.txtAddArticlePrice);
+        ratingAddArticle = findViewById(R.id.ratingAddArticle);
+        txtAddArticleDescription =findViewById(R.id.txtAddArticleDescription);
+        txtAddArticleUrl = findViewById(R.id.txtAddArticleUrl);
 
         //Récupérer les préférences si ya dans l'app
         SharedPreferences sharedPreferences = getSharedPreferences(ConfigurationActivity.NOM_FICHIER, MODE_PRIVATE);
@@ -66,7 +71,8 @@ public class AddArticleActivity extends AppCompatActivity {
 
     public void back(View view) {
 
-        onBackPressed();
+        finish();
+        //onBackPressed();
     }
 
     public void addArticle(View view) {
@@ -79,26 +85,72 @@ public class AddArticleActivity extends AppCompatActivity {
 
         article.setState(false);
 
-        List<Article> listArticles = articleDao.get();
         if (!listArticles.contains(article)) {
 
-            if( articleDao.insert(article) > 0) {
-
-                intent.putExtra("result","Article ajouté avec succès !");
-                this.setResult(RESULT_OK,intent);
-
-            } else {
-
-                intent.putExtra("result","Échec de l'ajout :(");
-                this.setResult(RESULT_CANCELED,intent);
-            }
+            Insert insertArticle = new Insert();
+            insertArticle.execute();
 
         } else {
 
             intent.putExtra("result","ERREUR : l'article existe déjà dans la liste des articles");
-            this.setResult(RESULT_CANCELED,intent);
+            AddArticleActivity.this.setResult(RESULT_CANCELED,intent);
         }
 
         finish();
+    }
+
+    private class GetListe extends AsyncTask<Void, Void, List<Article>> {
+
+        @Override
+        protected List<Article> doInBackground(Void... voids) {
+            try {
+
+                //instance de la BdD
+                AppDatabase db = Connection.getConnexion(AddArticleActivity.this);
+
+                ArticleDao dao = db.articleDao();
+
+                return dao.getAll();
+            }
+            catch(Exception ex) {
+
+                Log.e("GETListe","ERREUR tâche asynchrone GetListe de AddArticleActivity : " + ex.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Article> articles) {
+            listArticles = articles;
+        }
+    }
+
+    private class Insert extends AsyncTask<Void, Void, List<Article>> {
+
+        @Override
+        protected List<Article> doInBackground(Void... voids) {
+            try {
+
+                //instance de la BdD
+                AppDatabase db = Connection.getConnexion(AddArticleActivity.this);
+
+                ArticleDao dao = db.articleDao();
+                dao.insertAll(article);
+
+                return dao.getAll();
+            }
+            catch(Exception ex) {
+
+                Log.e("Insert","ERREUR tâche asynchrone Insert de AddArticleActivity : " + ex.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Article> articles) {
+
+            intent.putExtra("result","Article ajouté avec succès !");
+            AddArticleActivity.this.setResult(RESULT_OK,intent);
+        }
     }
 }

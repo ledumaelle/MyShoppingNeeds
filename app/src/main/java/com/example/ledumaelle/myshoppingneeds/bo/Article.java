@@ -4,16 +4,35 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import androidx.annotation.Nullable;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
+@Entity
 public class Article implements Parcelable {
 
+    @PrimaryKey(autoGenerate = true)
     private int id;
+
+    @ColumnInfo(name = "name")
     private String name;
+
+    @ColumnInfo(name = "price")
     private Float price;
+
+    @ColumnInfo(name = "description")
     private String description;
+
+    @ColumnInfo(name = "rate")
     private Float rate;
+
+    @ColumnInfo(name = "url")
     private String url;
+
+    @ColumnInfo(name = "state")
     private boolean state;
+
+    @ColumnInfo(name = "nameFile")
     private String nameFile;
 
     public Article() {
